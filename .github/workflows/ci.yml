@@ -257,6 +257,18 @@ jobs:
       - name: Build an unscoped PHAR
         run: ant unscoped-phar-snapshot
 
+      - name: Upload unscoped PHAR
+        uses: actions/upload-artifact@v2
+        if: ${{ matrix.php-version == 8.0 }}
+        with:
+          name: phpunit-unscoped-snapshot-phar
+          path: ./build/artifacts/phpunit-snapshot.phar
+          retention-days: 7
+
+      # Just to make sure that if the build for the scoped PHAR fails, the artifact upload will not contain the unscoped PHAR.
+      - name: Remove unscoped PHAR
+        run: rm ./build/artifacts/phpunit-snapshot.phar
+
       - name: Build a scoped PHAR
         run: ant phar-snapshot
 
@@ -264,12 +276,12 @@ jobs:
         uses: actions/upload-artifact@v2
         if: ${{ matrix.php-version == 8.0 }}
         with:
-          name: phpunit-snapshot-phar
+          name: phpunit-scoped-snapshot-phar
           path: ./build/artifacts/phpunit-snapshot.phar
           retention-days: 7
 
-  test-phar:
-    name: Test PHAR
+  test-unscoped-phar:
+    name: Test Unscoped PHAR
 
     runs-on: ubuntu-latest
 
@@ -302,16 +314,60 @@ jobs:
           ini-values: ${{ env.PHP_INI_VALUES }}
           tools: none
 
-      - name: Download PHAR
+      - name: Install java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Download unscoped PHAR
         uses: actions/download-artifact@v2
         with:
-          name: phpunit-snapshot-phar
+          name: phpunit-unscoped-snapshot-phar
 
-      - name: Run one stand-alone test purely with the PHAR
-        run: php ./phpunit-snapshot.phar --no-configuration ./tests/phar/tests/Issue4399Test
+      - name: Generate autoloader for test fixtures
+        run: ant generate-autoloader-for-test-fixture
 
-      - name: Install highest dependencies with composer
-        run: php ./tools/composer update --no-ansi --no-interaction --no-progress
-
-      - name: Run regular tests with PHAR
+      - name: Run regular tests with unscoped PHAR
         run: php ./phpunit-snapshot.phar
+
+  test-scoped-phar:
+    name: Test Scoped PHAR
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - build-phar
+
+    env:
+      PHP_EXTENSIONS: dom, json, libxml, mbstring, pdo_sqlite, soap, xml, xmlwriter
+      PHP_INI_VALUES: assert.exception=1, zend.assertions=1, error_reporting=-1, log_errors_max_len=0, display_errors=On
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - "7.3"
+          - "7.4"
+          - "8.0"
+          - "8.1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install PHP with extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          ini-values: ${{ env.PHP_INI_VALUES }}
+          tools: none
+
+      - name: Download scoped PHAR
+        uses: actions/download-artifact@v2
+        with:
+          name: phpunit-scoped-snapshot-phar
+
+      - name: Run PHAR-specific tests with scoped PHAR
+        run: php ./phpunit-snapshot.phar  --configuration tests/phar/phpunit.xml
