@@ -2,7 +2,7 @@
 
 on:
   pull_request: null
-  push: null
+#  push: null
   schedule:
     - cron: "15 0 * * *"
 

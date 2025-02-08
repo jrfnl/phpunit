@@ -1,0 +1,67 @@
+on:
+  push: null
+
+name: Bisect
+
+env:
+  COMPOSER_ROOT_VERSION: "12.1.x-dev"
+
+permissions:
+  contents: read
+
+jobs:
+  build-phar:
+    name: Build PHAR
+
+    strategy:
+      matrix:
+        hash:
+          - "46af700c350468657001c67c9d5c4e6d4f0057a8"
+          - "873416b3e559601ade441f0f4ae210d7a13e2711"
+          - "9354b267618453a43fa63af72899930e48022fa4"
+          - "391889d0b6f626e0379396ed61e2c6ae92beba10"
+          - "69dde560510151f7d04315fac6c72016cc5d7bc8"
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      PHP_EXTENSIONS: none, ctype, dom, json, fileinfo, iconv, libxml, mbstring, phar, tokenizer, xml, xmlwriter
+      PHP_INI_VALUES: phar.readonly=0, zend.assertions=1, error_reporting=0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PHP with extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: none
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          ini-values: ${{ env.PHP_INI_VALUES }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CodeCov dependency
+        run: composer require phpunit/php-code-coverage:"dev-main#${{ matrix.hash }}" -W
+
+      - name: Install java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 11
+
+      - name: Build PHAR
+        run: ant phar-snapshot
+
+      - name: Check whether PHAR is scoped
+        run: grep -q PHPUnitPHAR\\\\DeepCopy\\\\Exception\\\\CloneException build/artifacts/phpunit-snapshot.phar || (echo "phpunit-snapshot.phar is not scoped." && false)
+
+      - name: Upload PHAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-snapshot-${{ matrix.hash }}-phar
+          overwrite: true
+          path: ./build/artifacts/phpunit-snapshot.phar
+          retention-days: 7

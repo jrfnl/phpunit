@@ -111,5 +111,11 @@
         "branch-alias": {
             "dev-main": "12.1-dev"
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/sebastianbergmann/php-code-coverage.git"
+        }
+    ]
 }
