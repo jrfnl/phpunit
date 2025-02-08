@@ -16,11 +16,16 @@ jobs:
     strategy:
       matrix:
         hash:
-          - "46af700c350468657001c67c9d5c4e6d4f0057a8"
-          - "873416b3e559601ade441f0f4ae210d7a13e2711"
-          - "9354b267618453a43fa63af72899930e48022fa4"
-          - "391889d0b6f626e0379396ed61e2c6ae92beba10"
-          - "69dde560510151f7d04315fac6c72016cc5d7bc8"
+          #- "46af700c350468657001c67c9d5c4e6d4f0057a8"
+          #- "873416b3e559601ade441f0f4ae210d7a13e2711"
+          #- "9354b267618453a43fa63af72899930e48022fa4"
+          #- "391889d0b6f626e0379396ed61e2c6ae92beba10"
+
+          - "5ed521f486312c3b1b970da6a6543e641fa32578"
+          - "08fbab6175db74f68d528342cbdab254e74fd593"
+          - "0f52179519a10d3edab3cf567e909d68d48529ce"
+
+          #- "69dde560510151f7d04315fac6c72016cc5d7bc8"
 
     runs-on: ubuntu-latest
     timeout-minutes: 5
